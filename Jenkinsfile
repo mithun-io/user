@@ -3,18 +3,9 @@ pipeline {
 
     stages {
 
-        stage('checkout') {
-            steps {
-                sshagent(['github-ssh']) {
-                    git branch: 'main',
-                        url: 'git@github.com:mithun-io/user.git'
-                }
-            }
-        }
-
         stage('build') {
             steps {
-                bat 'mvn clean compile'
+                bat 'mvn clean package'
             }
         }
 
@@ -24,9 +15,23 @@ pipeline {
             }
         }
 
-        stage('package') {
+        stage('docker build') {
             steps {
-                bat 'mvn package'
+                bat 'docker build -t springboot-app .'
+            }
+        }
+
+        stage('docker cleanup') {
+            steps {
+                bat '''
+                docker rm -f springboot-container || exit 0
+                '''
+            }
+        }
+
+        stage('docker run') {
+            steps {
+                bat 'docker run -d --name springboot-container -p 8081:8080 springboot-app'
             }
         }
 
